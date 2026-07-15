@@ -1,0 +1,14 @@
+[{
+    "modid": "${modid}",
+    "name": "${modname}",
+    "description": "Core mod providing hooks for registering custom NTM:CE machines.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "logoFile": "",
+    "url": "",
+    "authorList": [],
+    "credits": "",
+    "dependencies": [
+      "hbm"
+    ]
+}]

@@ -1,0 +1,28 @@
+//file:noinspection DependencyNotationArgument
+/*
+ * Add your dependencies here. Supported configurations:
+ *  - api("group:name:version:classifier"): if you use the types from this dependency in the public API of this mod
+ *       Available at runtime and compiletime for mods depending on this mod
+ *  - implementation("g:n:v:c"): if you need this for internal implementation details of the mod, but none of it is visible via the public API
+ *       Available at runtime but not compiletime for mods depending on this mod
+ *  - compileOnly("g:n:v:c"): if the mod you're building doesn't need this dependency during runtime at all, e.g. for optional mods
+ *       Not available at all for mods depending on this mod, only visible at compiletime for this mod
+ *  - runtimeOnlyNonPublishable("g:n:v:c"): if you want to include a mod in this mod's runClient/runServer runs, but not publish it as a dependency
+ *       Not available at all for mods depending on this mod, only visible at runtime for this mod
+ *
+ * To depend on obfuscated jars you can use `devOnlyNonPublishable(rfg.deobf("dep:spec:1.2.3"))` to fetch an obfuscated jar from maven,
+ * or `devOnlyNonPublishable(rfg.deobf(project.files("libs/my-mod-jar.jar")))` to use a file.
+ *
+ * To add a mod with CurseMaven, replace '("g:n:v:c")' in the above with 'rfg.deobf("curse.maven:project_slug-project_id:file_id")'
+ *
+ * See https://github.com/GregTechCEu/Buildscripts/blob/master/dependencies.gradle for the full documentation.
+ */
+dependencies {
+    // Nuclear Tech Mod: Community/Continuation Edition - required base mod this core hooks into.
+    // Update the file id when bumping to a newer NTM-CE release.
+    implementation rfg.deobf("curse.maven:hbm-nuclear-tech-mod-community-edition-1312314:8174803") // 2.5.0.3
+
+    // hbm declares a hard dependency on CTM (Connected Textures Mod) in its mcmod.info; without it
+    // present at runtime FML refuses to start with a MissingModsException.
+    runtimeOnlyNonPublishable rfg.deobf(files("libs/CTM-MC1.12.2-1.0.2.31.jar"))
+}
