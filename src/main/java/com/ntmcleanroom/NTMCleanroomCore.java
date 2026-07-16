@@ -1,6 +1,7 @@
 package com.ntmcleanroom;
 
 import com.ntmcleanroom.api.machine.CleanroomGuiHandler;
+import com.ntmcleanroom.compat.tinkers.TinkersCompat;
 import com.ntmcleanroom.content.transmutator.TransmutatorModule;
 import com.ntmcleanroom.init.proxy.CommonProxy;
 import net.minecraftforge.fml.common.Mod;
@@ -14,7 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @Mod(modid = Tags.MODID, version = Tags.VERSION, name = Tags.MODNAME, acceptedMinecraftVersions = "[1.12.2]",
-        dependencies = "required-after:hbm@[2.5.0.0,);")
+        dependencies = "required-after:hbm@[2.5.0.0,);after:tconstruct;")
 public class NTMCleanroomCore {
 
     public static final Logger LOGGER = LogManager.getLogger(Tags.MODID);
@@ -31,6 +32,7 @@ public class NTMCleanroomCore {
         NetworkRegistry.INSTANCE.registerGuiHandler(instance, new CleanroomGuiHandler());
 
         TransmutatorModule.preInit();
+        TinkersCompat.preInit(event);
 
         proxy.preInit(event);
         proxy.registerRenderInfo();
@@ -38,11 +40,14 @@ public class NTMCleanroomCore {
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
+        TransmutatorModule.init();
+        TinkersCompat.init(event);
         proxy.init(event);
     }
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent event) {
+        TinkersCompat.postInit(event);
         proxy.postInit(event);
     }
 }

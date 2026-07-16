@@ -2,23 +2,31 @@ package com.ntmcleanroom.content.transmutator;
 
 import com.ntmcleanroom.NTMCleanroomCore;
 import com.ntmcleanroom.api.machine.CleanroomMachineRegistry;
+import com.hbm.blocks.ITooltipProvider;
 import com.hbm.lib.InventoryHelper;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * Restored from NTM-CE (removed upstream); see {@link TransmutatorModule} for registration
  * and {@link SchrabidiumTransmutatorRecipes} for the input/output recipe table.
  */
-public class MachineSchrabidiumTransmutator extends BlockContainer {
+public class MachineSchrabidiumTransmutator extends BlockContainer implements ITooltipProvider {
 
     public MachineSchrabidiumTransmutator(Material materialIn, String s) {
         super(materialIn);
@@ -53,5 +61,11 @@ public class MachineSchrabidiumTransmutator extends BlockContainer {
     @Override
     public EnumBlockRenderType getRenderType(IBlockState state) {
         return EnumBlockRenderType.MODEL;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
+        addStandardInfo(tooltip);
     }
 }

@@ -20,9 +20,15 @@
 dependencies {
     // Nuclear Tech Mod: Community/Continuation Edition - required base mod this core hooks into.
     // Update the file id when bumping to a newer NTM-CE release.
-    implementation rfg.deobf("curse.maven:hbm-nuclear-tech-mod-community-edition-1312314:8174803") // 2.5.0.3
+    implementation rfg.deobf("curse.maven:hbm-nuclear-tech-mod-community-edition-1312314:8330665") // 2.5.0.5
 
     // hbm declares a hard dependency on CTM (Connected Textures Mod) in its mcmod.info; without it
     // present at runtime FML refuses to start with a MissingModsException.
     runtimeOnlyNonPublishable rfg.deobf(files("libs/CTM-MC1.12.2-1.0.2.31.jar"))
+
+    // Tinkers' Antique (a retro-compatible 1.12.2 continuation of Tinkers' Construct 2) + its
+    // required Mantle library - optional soft dependency, gated behind Loader.isModLoaded("tconstruct")
+    // in com.ntmcleanroom.compat.tinkers, so devOnlyNonPublishable keeps it off our published POM.
+    devOnlyNonPublishable rfg.deobf("curse.maven:tinkers-antique-1242239:8089154") // 2.13.0.207
+    devOnlyNonPublishable rfg.deobf("curse.maven:mantle-74924:2713386") // 1.3.3.55
 }
