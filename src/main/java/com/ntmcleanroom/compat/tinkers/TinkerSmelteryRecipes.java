@@ -66,10 +66,11 @@ public final class TinkerSmelteryRecipes {
             mbPerShapeCast.put(shape, DEFAULT_MB_PER_INGOT);
         }
         // Alloy-only support fluids (see AlloyRecipes) - not bridged materials in their own right,
-        // but still worth exposing here so their melt amount is editable alongside everything else.
-        for (String alloyIngredient : new String[] {
-                "ntmalloy_carbon", "ntmalloy_bismuth", "ntmalloy_arsenic",
-                "ntmalloy_tungsten", "ntmalloy_magnetized_tungsten"}) {
+        // but still worth exposing here so their melt amount is editable alongside everything
+        // else. Only Carbon and Redstone get a fluid of their own; every other alloy ingredient/
+        // output AlloyRecipes uses is sourced from FoundryShapeBridge's own "hbm_<suffix>" keys
+        // instead (see AlloyRecipes' class doc for why).
+        for (String alloyIngredient : new String[] {"ntmalloy_carbon", "ntmalloy_redstone"}) {
             mbPerIngot.put(alloyIngredient, DEFAULT_MB_PER_INGOT);
         }
 

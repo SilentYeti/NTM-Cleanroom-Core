@@ -1,7 +1,5 @@
 package com.ntmcleanroom.compat.tinkers;
 
-import com.hbm.inventory.material.Mats;
-import com.hbm.inventory.material.NTMMaterial;
 import com.hbm.items.ModItems;
 import com.ntmcleanroom.Tags;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -28,6 +26,17 @@ import java.util.Map;
  * stay directly wired. {@code cast_stamp}/{@code cast_c9}/{@code cast_c50} are genuine
  * placeholders: real items, no recipe attempt (hbm hardcodes those molds to specific materials
  * entirely outside our bridged set).
+ *
+ * <p>Dense wire ({@code "dense_wire"} -> oredict {@code "wireDense"}) used to be wired by hand,
+ * hardcoded to 5 materials using {@code new ItemStack(ModItems.wire_dense, 1, hbmMaterial.id)} -
+ * {@code hbmMaterial.id} is hbm's own internal material-identity number (used for oredict
+ * uniqueness elsewhere), not the small sequential metadata index {@code wire_dense} actually uses
+ * for its variants, so this produced missing-texture items for materials whose id didn't happen to
+ * coincide with a real variant, and simply never fired for any material outside that hardcoded
+ * list of 5. It's oredict-generic exactly like the other shapes, so it now goes through
+ * {@link #GENERIC_SHAPES} like everything else - resolving the real item via
+ * {@code OreDictionary.getOres("wireDense" + suffix)} naturally yields nothing for a material with
+ * no real dense-wire variant, instead of a broken guess.
  */
 public class ShapeCasts {
 
@@ -41,6 +50,7 @@ public class ShapeCasts {
         GENERIC_SHAPES.put("plate", "plateTriple");
         GENERIC_SHAPES.put("billet", "billet");
         GENERIC_SHAPES.put("wire", "wireFine");
+        GENERIC_SHAPES.put("dense_wire", "wireDense");
         GENERIC_SHAPES.put("shell", "shell");
         GENERIC_SHAPES.put("pipe", "ntmpipe");
         GENERIC_SHAPES.put("barrel_light", "barrelLight");
@@ -57,7 +67,6 @@ public class ShapeCasts {
 
     public static Item castBlade;
     public static Item castBlades;
-    public static Item castDenseWire;
 
     /** Creates and registers the cast items. Must run in preInit, before {@link #registerModels()}. */
     public static void registerItems() {
@@ -67,10 +76,8 @@ public class ShapeCasts {
 
         castBlade = register("cast_blade");
         castBlades = register("cast_blades");
-        castDenseWire = register("cast_dense_wire");
         ALL_CASTS.put("blade", castBlade);
         ALL_CASTS.put("blades", castBlades);
-        ALL_CASTS.put("dense_wire", castDenseWire);
 
         for (String shape : PLACEHOLDER_ONLY_SHAPES) {
             ALL_CASTS.put(shape, register("cast_" + shape));
@@ -114,12 +121,6 @@ public class ShapeCasts {
         castItem("ntmtitanium", "blades", castBlades, ModItems.blades_titanium);
         // hbm gives "blades" only to Steel and Titanium - no Desh recipe here (v2 incorrectly had one).
 
-        castDenseWire("ntmsteel", Mats.MAT_STEEL);
-        castDenseWire("ntmtitanium", Mats.MAT_TITANIUM);
-        castDenseWire("ntmdesh", Mats.MAT_DESH);
-        castDenseWire("ntmcmbsteel", Mats.MAT_CMB);
-        castDenseWire("ntmschrabidium", Mats.MAT_SCHRABIDIUM);
-
         // cast_stamp/c9/c50 are intentional blank placeholders - hbm hardcodes those molds to
         // specific materials entirely outside our bridged set, so there's nothing to wire here.
     }
@@ -137,10 +138,6 @@ public class ShapeCasts {
             return;
         }
         registerTableCasting(materialId, shapeName, cast, new ItemStack(output));
-    }
-
-    private static void castDenseWire(String materialId, NTMMaterial hbmMaterial) {
-        registerTableCasting(materialId, "dense_wire", castDenseWire, new ItemStack(ModItems.wire_dense, 1, hbmMaterial.id));
     }
 
     private static void registerTableCasting(String materialId, String shapeName, Item cast, ItemStack output) {

@@ -37,7 +37,7 @@ public class GuiNTMToolAbility extends GUIScreenToolAbility {
         AbilitySlots.writeConfiguration(this.toolStack, this.config);
         AbilityNetworking.CHANNEL.sendToServer(new SyncAbilityConfigMessage(this.toolStack.getTagCompound()));
         mc.player.closeScreen();
-        MainRegistry.proxy.displayTooltipLegacy(this.config.getActivePreset().getMessage().getFormattedText(), 11);
+        MainRegistry.proxy.displayTooltipLegacy(AbilitySlots.getMessage(this.config.getActivePreset()).getFormattedText(), 11);
         mc.world.playSound(mc.player.getPosition(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS,
                 0.25f, this.config.getActivePreset().isNone() ? 0.75f : 1.25f, false);
     }

@@ -5,7 +5,10 @@ import com.hbm.handler.ability.ToolPreset;
 import com.hbm.items.tool.ItemToolAbility;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextFormatting;
 import slimeknights.tconstruct.library.traits.ITrait;
+import slimeknights.tconstruct.library.utils.TagUtil;
 import slimeknights.tconstruct.library.utils.TinkerUtil;
 
 import java.util.List;
@@ -60,6 +63,24 @@ public final class AbilitySlots {
         }
         config.writeToNBT(tag);
         stack.setTagCompound(tag);
+        // Tinkers' own glow-toggle flag (Item.hasEffect delegates to this for every ToolCore item) -
+        // mirrors hbm's real tools showing the enchant shimmer whenever a special ability is active.
+        TagUtil.setEnchantEffect(stack, !config.getActivePreset().isNone());
+    }
+
+    /**
+     * hbm's own {@code ToolPreset.getMessage()} (confirmed via bytecode) builds the "enabled" case
+     * as the literal {@code "[Enabled"} plus the translated ability name(s), but never appends a
+     * closing {@code "]"} anywhere in that method - only the "[Tool ability deactivated]" case has
+     * a matching bracket, baked into that one literal string. Real upstream bug, not ours; patched
+     * here since we display this message in more places than hbm does.
+     */
+    public static ITextComponent getMessage(ToolPreset preset) {
+        ITextComponent message = preset.getMessage();
+        if (!preset.isNone()) {
+            message.appendText(TextFormatting.YELLOW + "]");
+        }
+        return message;
     }
 
     public static ToolPreset getActivePreset(ItemStack stack) {

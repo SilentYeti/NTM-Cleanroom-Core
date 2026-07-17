@@ -6,6 +6,7 @@ import com.ntmcleanroom.compat.tinkers.traits.AoeTrait;
 import com.ntmcleanroom.compat.tinkers.traits.AutoShredTrait;
 import com.ntmcleanroom.compat.tinkers.traits.AutoSmeltTrait;
 import com.ntmcleanroom.compat.tinkers.traits.BeheaderTrait;
+import com.ntmcleanroom.compat.tinkers.traits.DeshTrait;
 import com.ntmcleanroom.compat.tinkers.traits.FlatAoeTrait;
 import com.ntmcleanroom.compat.tinkers.traits.FortuneTrait;
 import com.ntmcleanroom.compat.tinkers.traits.RadioactiveBladeTrait;
@@ -58,32 +59,41 @@ public class TinkersMaterialRegistry {
     private static final StunTrait STUN = new StunTrait("ntmcleanroom_stun", 0);
     // Combine Steel and Schrabidium both register Vampire at hbm's level 0 (amountAtLevel[0]=2).
     private static final VampireTrait VAMPIRE = new VampireTrait("ntmcleanroom_vampire", 0);
+    private static final DeshTrait DESH_TRAIT = new DeshTrait("ntmcleanroom_desh");
 
     static {
         // Material identifiers are prefixed "ntm" since Tinkers' Antique already ships its own
         // built-in "steel"/"lead" materials and rejects a second registration under the same name.
+        // HeadMaterialStats(durability, miningspeed, attack, harvestLevel) - confirmed via
+        // bytecode; the constructor is NOT (durability, attack, miningspeed, harvestLevel) as
+        // originally assumed, which had mining speed and attack damage swapped for every
+        // material (root cause of "Desh Tinkers pickaxe mines slower than the real hbm one" -
+        // its miningspeed was pinned to the intended attack-damage value of 2.0, barely above
+        // vanilla wood tier).
         MATERIALS.add(full("ntmsteel", "Steel", Mats.MAT_STEEL.moltenColor, OreDictManager.STEEL,
-                new HeadMaterialStats(500, 2.0F, 7.5F, 2),
+                new HeadMaterialStats(500, 7.5F, 2.0F, 2),
                 new HandleMaterialStats(1.0F, 500),
                 VEIN_MINER_WEAK, STUN, BEHEADER));
 
         MATERIALS.add(full("ntmtitanium", "Titanium", Mats.MAT_TITANIUM.moltenColor, OreDictManager.TI,
-                new HeadMaterialStats(750, 2.5F, 9.0F, 2),
+                new HeadMaterialStats(750, 9.0F, 2.5F, 2),
                 new HandleMaterialStats(1.1F, 750),
                 BEHEADER));
 
         MATERIALS.add(full("ntmdesh", "Desh", Mats.MAT_DESH.moltenColor, OreDictManager.DESH,
-                new HeadMaterialStats(1600, 2.0F, 7.5F, 2),
+                new HeadMaterialStats(1600, 7.5F, 2.0F, 2),
                 new HandleMaterialStats(1.1F, 1600),
                 VEIN_MINER_WEAK,
-                new AoeTrait("ntmcleanroom_hammer_weak", 1, 0),
+                // radius 2 = 5x5x5 cube (rangeAtLevel[1]=2), not the earlier 3x3x3 - Hammer Flat
+                // stays a 3x3 plane.
+                new AoeTrait("ntmcleanroom_hammer_weak", 2, 1),
                 new FlatAoeTrait("ntmcleanroom_hammer_flat_weak", 1, 0),
                 SILK_TOUCH,
                 new FortuneTrait("ntmcleanroom_fortune_2", 1),
-                STUN, BEHEADER));
+                STUN, BEHEADER, DESH_TRAIT));
 
         MATERIALS.add(full("ntmcmbsteel", "Combine Steel", Mats.MAT_CMB.moltenColor, OreDictManager.CMB,
-                new HeadMaterialStats(8500, 55.0F, 40.0F, 4),
+                new HeadMaterialStats(8500, 40.0F, 55.0F, 4),
                 new HandleMaterialStats(1.6F, 8500),
                 VEIN_MINER_MEDIUM,
                 AUTO_SMELT,
@@ -92,7 +102,7 @@ public class TinkersMaterialRegistry {
                 STUN, VAMPIRE, BEHEADER));
 
         MATERIALS.add(full("ntmschrabidium", "Schrabidium", Mats.MAT_SCHRABIDIUM.moltenColor, OreDictManager.SA326,
-                new HeadMaterialStats(10000, 100.0F, 50.0F, 4),
+                new HeadMaterialStats(10000, 50.0F, 100.0F, 4),
                 new HandleMaterialStats(2.0F, 10000),
                 VEIN_MINER_STRONG,
                 new AoeTrait("ntmcleanroom_hammer_strong", 2, 1),
@@ -145,10 +155,15 @@ public class TinkersMaterialRegistry {
                     if (registeredTraits.add(trait)) {
                         TinkerRegistry.addTrait(trait);
                     }
-                    // HeadMaterialStats.TYPE ("head"), not null - null buckets the trait as a
-                    // fallback applied to ANY part type lacking its own bucket, which is what
-                    // leaked these onto tool rods/handles before this fix.
-                    TinkerRegistry.addMaterialTrait(material, trait, HeadMaterialStats.TYPE);
+                    // TinkerRegistry.addMaterialTrait(Material, ITrait, String) is confirmed via
+                    // bytecode to validate its String param via checkMaterialTrait(...) but then
+                    // call Material.addTrait(ITrait) - the no-arg overload - which always buckets
+                    // under null regardless of what's passed here. Passing HeadMaterialStats.TYPE
+                    // to that method (the previous "fix") made no actual difference; only
+                    // Material.addTrait(ITrait, String) respects the bucket, so call it directly.
+                    if (TinkerRegistry.checkMaterialTrait(material, trait, HeadMaterialStats.TYPE)) {
+                        material.addTrait(trait, HeadMaterialStats.TYPE);
+                    }
                 }
             }
         }
@@ -163,12 +178,8 @@ public class TinkersMaterialRegistry {
             // registerOredictMeltingCasting does the same thing internally, but hardcodes its own
             // amount with no way to override it - see TinkerSmelteryRecipes).
             String suffix = ntm.ingotOreDict.substring("ingot".length());
-            int mbPerIngot = TinkerSmelteryRecipes.mbPerIngot(ntm.id);
 
-            registerOredictMeltingCasting(ntm.fluid, "ingot" + suffix, mbPerIngot);
-            registerOredictMeltingCasting(ntm.fluid, "nugget" + suffix, mbPerIngot / 9);
-            registerOredictMeltingCasting(ntm.fluid, "block" + suffix, mbPerIngot * 9);
-            registerOredictMeltingCasting(ntm.fluid, "ore" + suffix, mbPerIngot);
+            registerStandardMeltingCasting(ntm.fluid, suffix, TinkerSmelteryRecipes.mbPerIngot(ntm.id));
 
             if (ntm.isFull()) {
                 TinkerSmeltery.registerToolpartMeltingCasting(ntm.material);
@@ -176,10 +187,44 @@ public class TinkersMaterialRegistry {
         }
     }
 
-    private static void registerOredictMeltingCasting(Fluid fluid, String oredictName, int amount) {
+    /**
+     * Melting + casting for every standard oredict form of one material, matching Tinkers' own
+     * per-form convention exactly (confirmed via bytecode of its
+     * {@code TinkerSmeltery.registerOredictMeltingCasting}): ingots and nuggets are TABLE-cast
+     * using Tinkers' own reusable gold Ingot/Nugget Cast items, blocks are BASIN-cast with no cast
+     * item, and ores only melt (never castable back). This replaced an earlier version that
+     * basin-cast every form - which made ingots come out of the basin like blocks instead of going
+     * through Tinkers' Ingot Cast, and even let molten metal be cast back into ore blocks.
+     *
+     * <p>Shared with {@link FoundryShapeBridge}, so the ~100 dynamically-bridged hbm materials get
+     * the identical treatment.
+     */
+    static void registerStandardMeltingCasting(Fluid fluid, String suffix, int mbPerIngot) {
+        registerTableForm("ingot" + suffix, fluid, mbPerIngot, TinkerSmeltery.castIngot);
+        registerTableForm("nugget" + suffix, fluid, Math.max(1, mbPerIngot / 9), TinkerSmeltery.castNugget);
+        registerTableForm("gem" + suffix, fluid, mbPerIngot, TinkerSmeltery.castGem);
+
+        if (!OreDictionary.getOres("block" + suffix).isEmpty()) {
+            TinkerRegistry.registerMelting("block" + suffix, fluid, mbPerIngot * 9);
+            for (ItemStack stack : OreDictionary.getOres("block" + suffix)) {
+                TinkerRegistry.registerBasinCasting(stack.copy(), ItemStack.EMPTY, fluid, mbPerIngot * 9);
+            }
+        }
+        if (!OreDictionary.getOres("ore" + suffix).isEmpty()) {
+            TinkerRegistry.registerMelting("ore" + suffix, fluid, mbPerIngot);
+        }
+    }
+
+    private static void registerTableForm(String oredictName, Fluid fluid, int amount, ItemStack cast) {
+        if (OreDictionary.getOres(oredictName).isEmpty()) {
+            return;
+        }
         TinkerRegistry.registerMelting(oredictName, fluid, amount);
+        if (cast == null || cast.isEmpty()) {
+            return;
+        }
         for (ItemStack stack : OreDictionary.getOres(oredictName)) {
-            TinkerRegistry.registerBasinCasting(stack, ItemStack.EMPTY, fluid, amount);
+            TinkerRegistry.registerTableCasting(stack.copy(), cast.copy(), fluid, amount);
         }
     }
 

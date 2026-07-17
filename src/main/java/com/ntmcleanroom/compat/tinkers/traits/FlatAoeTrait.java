@@ -12,6 +12,9 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import slimeknights.tconstruct.library.traits.AbstractTrait;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
  * Recreation of hbm's "Hammer Flat" tool area-ability: like {@link AoeTrait} but only within the
  * same horizontal layer as the broken block, for tunneling instead of a full cube. Competes with
@@ -21,6 +24,9 @@ import slimeknights.tconstruct.library.traits.AbstractTrait;
 public class FlatAoeTrait extends AbstractTrait implements CompetingAreaTrait {
 
     private static final ThreadLocal<Boolean> EXPANDING = ThreadLocal.withInitial(() -> false);
+    // Same-tick belt-and-suspenders alongside AreaAbilityGuard (see markSelfDestroyed/isEcho
+    // below) - the real fix for runaway spreading, since an echo can land on a later tick.
+    private static final Map<EntityPlayer, Long> lastTriggerTick = new WeakHashMap<>();
 
     private final int radius;
     private final int hbmLevel;
@@ -46,11 +52,21 @@ public class FlatAoeTrait extends AbstractTrait implements CompetingAreaTrait {
         if (world.isRemote || !wasEffective || !(living instanceof EntityPlayer) || EXPANDING.get()) {
             return;
         }
+        if (AreaAbilityGuard.isEcho(pos)) {
+            return;
+        }
         if (!ToolTypes.isHarvestTool(stack) || AbilitySlots.getActivePreset(stack).areaAbility != IToolAreaAbility.HAMMER_FLAT) {
             return;
         }
 
         EntityPlayer player = (EntityPlayer) living;
+
+        long tick = world.getTotalWorldTime();
+        Long last = lastTriggerTick.get(player);
+        if (last != null && last == tick) {
+            return;
+        }
+        lastTriggerTick.put(player, tick);
 
         EXPANDING.set(true);
         try {
@@ -65,8 +81,19 @@ public class FlatAoeTrait extends AbstractTrait implements CompetingAreaTrait {
                     if (targetState.getBlock().isAir(targetState, world, target)) {
                         continue;
                     }
+                    // ForgeHooks.canHarvestBlock returns true unconditionally for any block whose
+                    // material doesn't require a tool at all (water, dirt, plants...), completely
+                    // bypassing the harvest-level check below it - explicitly exclude those, or
+                    // AoE "mines" water/dirt/etc regardless of tool tier.
+                    if (targetState.getMaterial().isToolNotRequired()) {
+                        continue;
+                    }
+                    if (targetState.getBlockHardness(world, target) < 0) {
+                        continue;
+                    }
 
                     if (net.minecraftforge.common.ForgeHooks.canHarvestBlock(targetState.getBlock(), player, world, target)) {
+                        AreaAbilityGuard.markSelfDestroyed(target);
                         world.destroyBlock(target, true);
                         stack.damageItem(1, player);
                     }

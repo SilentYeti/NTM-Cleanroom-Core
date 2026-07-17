@@ -22,6 +22,14 @@ public final class ToolTypes {
         return item instanceof Pickaxe || item instanceof Shovel || item instanceof Hatchet;
     }
 
+    public static boolean isPickaxe(ItemStack stack) {
+        return stack.getItem() instanceof Pickaxe;
+    }
+
+    public static boolean isShovel(ItemStack stack) {
+        return stack.getItem() instanceof Shovel;
+    }
+
     public static boolean isAxe(ItemStack stack) {
         return stack.getItem() instanceof Hatchet;
     }

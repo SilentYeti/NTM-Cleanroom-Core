@@ -1,9 +1,13 @@
 package com.ntmcleanroom.compat.tinkers.ability;
 
 import com.hbm.handler.ability.ToolPreset;
+import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toclient.PlayerInformPacketLegacy;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.SoundCategory;
 
 /** Client->server request to cycle the held tool's active ability preset (see {@link AbilitySlots#cycle}), sent on right-click. */
 public class CycleAbilityMessage implements net.minecraftforge.fml.common.network.simpleimpl.IMessage {
@@ -35,7 +39,13 @@ public class CycleAbilityMessage implements net.minecraftforge.fml.common.networ
                 return;
             }
 
-            player.sendStatusMessage(preset.getMessage(), true);
+            // Matches hbm's own ItemToolAbility.handleKeybind exactly: a real hbm "informer"
+            // packet (top-left popup, not vanilla action bar) plus its confirmation ding, pitched
+            // down when the tool's abilities were just turned off.
+            PacketDispatcher.wrapper.sendTo(new PlayerInformPacketLegacy(AbilitySlots.getMessage(preset), 11), player);
+            player.getServerWorld().playSound(null, player.posX, player.posY, player.posZ,
+                    SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.25F,
+                    preset.isNone() ? 0.75F : 1.25F);
         }
     }
 }
